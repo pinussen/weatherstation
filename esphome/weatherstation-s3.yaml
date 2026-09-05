@@ -1,6 +1,6 @@
-# KOMPLETT ESPHome-program. Kopiera hela filen till enhetens YAML i Device Builder.
-# Inga paketfiler eller secrets.yaml behövs. Ändra WiFi, API-nyckel och lösenord nedan.
-# Se README.md för installation, inkoppling och kalibrering.
+# Complete ESPHome program. Copy this entire file into the Device Builder editor.
+# No package files or secrets.yaml are required. Change the credentials below.
+# See README.md for installation, wiring and calibration.
 substitutions:
   name: weatherstation-s3
   friendly_name: Weather Station
@@ -18,12 +18,11 @@ substitutions:
   wind_debounce: 15ms
   rain_mm_per_tip: '0.6314'
   rain_debounce: 300ms
-  esp32_variant: esp32s3
   sda_pin: GPIO8
   scl_pin: GPIO9
   wind_pin: GPIO4
   rain_pin: GPIO5
-  # Fyll i dina egna uppgifter innan installation. Exempelnyckeln nedan är offentlig.
+  # Replace these public example credentials before installing.
   wifi_ssid: CHANGE_ME_WIFI_NAME
   wifi_password: CHANGE_ME_WIFI_PASSWORD
   api_key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
@@ -35,7 +34,7 @@ esphome:
   min_version: 2026.8.2
 
 esp32:
-  variant: ${esp32_variant}
+  variant: esp32s3
   flash_size: 4MB
   framework:
     type: esp-idf
