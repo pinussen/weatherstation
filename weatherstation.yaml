@@ -24,6 +24,7 @@ substitutions:
   wind_pin: GPIO2
   rain_pin: GPIO3
   # SHT30 wiring on this board: red=3.3V, black=GND, white=SDA, yellow=SCL.
+  # BMP280 I2C: bridge CSB to VCC and SDO to GND for address 0x76.
   # Replace these public example credentials before installing.
   wifi_ssid: CHANGE_ME_WIFI_NAME
   wifi_password: CHANGE_ME_WIFI_PASSWORD
