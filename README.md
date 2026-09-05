@@ -1,161 +1,123 @@
-# Weather Station – ESP32 + ESPHome
+# Väderstation för ESP32 och ESPHome
 
-Den här forken av [byte4geek/weatherstation](https://github.com/byte4geek/weatherstation)
-är anpassad för **ESP32 och Home Assistant via ESPHome**. ESP32-C6 är huvudprofilen.
-Firmware använder ESP-IDF och ESPHomes inbyggda sensordrivrutiner, krypterat lokalt API,
-OTA, loggar och diagnostik. MQTT-broker behövs inte.
+## Komplett program för ditt ESP32-C6
+
+**[Öppna weatherstation.yaml](weatherstation.yaml)** · **[Visa hela filen som text (Raw)](https://raw.githubusercontent.com/pinussen/weatherstation/main/weatherstation.yaml)**
+
+Detta är hela ESPHome-programmet i en enda fil. Alla sensorer, WiFi, Home Assistant-API,
+OTA, loggar och kalibrering finns i filen. Inga `packages`, `!include` eller separata
+`secrets.yaml` behövs. ESPHome bygger programmet till firmware åt dig.
+
+### Installera från Home Assistant
+
+1. Öppna **ESPHome Device Builder** i Home Assistant (ESPHome 2026.8.2 eller senare).
+   Saknas den, följ [installationsguiden](https://esphome.io/install/getting-started/).
+2. Skapa en ny enhet för ESP32-C6 och välj **Edit**.
+3. Kopiera **hela** [weatherstation.yaml](https://raw.githubusercontent.com/pinussen/weatherstation/main/weatherstation.yaml)
+   och ersätt allt innehåll i enhetens editor.
+4. Ändra följande under `substitutions` högst upp i filen:
+   - `wifi_ssid` och `wifi_password`: ditt 2,4 GHz WiFi.
+   - `api_key`: din egen krypteringsnyckel från Device Builders enhetsguide.
+   - `ota_password` och `ap_password`: egna lösenord (AP minst åtta tecken).
+   - Behåll enhetens befintliga `name` om du ersätter en redan installerad ESPHome-enhet.
+5. Klicka **Save → Validate → Install**. Första installationen görs via USB:
+   anslut kortet till HA-maskinen och välj serieporten, eller välj
+   **Manual download → Factory format** och installera med [ESPHome Web](https://web.esphome.io/)
+   i Chrome/Edge på datorn med USB-kabeln. Om kortet inte hittas, håll BOOT medan du
+   trycker RESET och försök igen.
+6. Lägg till den upptäckta ESPHome-enheten under **Inställningar → Enheter och tjänster**.
+   Ange samma API-nyckel. Vid utebliven upptäckt kan du lägga till den med IP-adressen.
+7. Därefter används **Install → Wirelessly**, **Logs** och **Edit** i Device Builder.
+
+Exempelnyckeln och lösenorden i filen är offentliga byggexempel; ersätt dem före
+installation. API-nyckeln ska vara 32 slumpbyte i base64. Den kan även genereras med:
+
+```sh
+python3 -c 'import secrets, base64; print(base64.b64encode(secrets.token_bytes(32)).decode())'
+```
+
+Du kan senare flytta uppgifterna till ESPHomes `secrets.yaml` om du vill.
+Dela inte din redigerade fil med lösenord i. Kör du Home Assistant Container behövs
+ESPHome Device Builder separat. MQTT-broker behövs inte.
 
 ## Kort och inkoppling
 
-| Profil i `esphome/` | Chip | SDA | SCL | Vindpuls | Regnpuls |
-|---|---|---|---|---|---|
-| `weatherstation-c6.yaml` | ESP32-C6 DevKit | GPIO6 | GPIO7 | GPIO10 | GPIO11 |
-| `weatherstation-esp32.yaml` | ESP32 / WROOM DevKit | GPIO21 | GPIO22 | GPIO25 | GPIO26 |
-| `weatherstation-c3.yaml` | ESP32-C3 DevKit | GPIO4 | GPIO5 | GPIO6 | GPIO7 |
-| `weatherstation-s3.yaml` | ESP32-S3 DevKit | GPIO8 | GPIO9 | GPIO4 | GPIO5 |
-| `weatherstation-s2.yaml` | ESP32-S2 DevKit | GPIO8 | GPIO9 | GPIO4 | GPIO5 |
+Alla nedanstående filer är kompletta, fristående program; välj **en** för ditt chip.
 
-Profilerna använder generisk chipvariant och 4 MB flash, utan krav på PSRAM eller
-inbyggd LED. Kort med större flash kan också använda denna 4 MB-layout. Kontrollera
-att pinnarna är utdragna och lediga på just ditt kort; ändra `substitutions` vid behov.
-En C6 Super Mini eller XIAO har inte nödvändigtvis samma tillgängliga pinnar som en
-DevKitC. [C6 DevKitC:s pinout](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c6/esp32-c6-devkitc-1/user_guide.html).
+| Fil | Chip | SDA | SCL | Vindpuls | Regnpuls |
+|---|---|---|---|---|---|
+| **[weatherstation.yaml](weatherstation.yaml)** | **ESP32-C6 DevKit** | **GPIO6** | **GPIO7** | **GPIO10** | **GPIO11** |
+| [ESP32/WROOM](esphome/weatherstation-esp32.yaml) | ESP32 DevKit | GPIO21 | GPIO22 | GPIO25 | GPIO26 |
+| [C3](esphome/weatherstation-c3.yaml) | ESP32-C3 | GPIO4 | GPIO5 | GPIO6 | GPIO7 |
+| [S3](esphome/weatherstation-s3.yaml) | ESP32-S3 | GPIO8 | GPIO9 | GPIO4 | GPIO5 |
+| [S2](esphome/weatherstation-s2.yaml) | ESP32-S2 | GPIO8 | GPIO9 | GPIO4 | GPIO5 |
+
+Profilerna använder ESP-IDF, 4 MB flash och inget PSRAM. Kort med större flash kan
+också använda layouten. Kontrollera att pinnarna är lediga och utdragna på just ditt
+kort; ändra dem i `substitutions` vid behov. C6 Super Mini och XIAO kan ha andra
+pinnar än [C6 DevKitC](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c6/esp32-c6-devkitc-1/user_guide.html).
 
 Alla I²C-sensorer ansluts parallellt till SDA/SCL och gemensam jord, med pull-ups till
 **3,3 V**. Pulssignalerna använder intern pull-up och aktiv låg signal. ESP32-ingångar
 ska inte matas med 5 V. A3144 kan behöva 5 V matning: använd dess open-collector-utgång
 med pull-up till 3,3 V, eller nivåomvandling om modulens utgång dras upp till 5 V.
-Använd GPIO-numren ovan, inte ESP8266:s D1/D2-beteckningar eller gamla kopplingsbild.
 
-## Installera och hantera från Home Assistant
+## Sensorer och inställningar
 
-1. Installera och starta **ESPHome Device Builder** i Home Assistant OS.
-   [Officiell installationsguide](https://esphome.io/install/getting-started/).
-   Kör du Home Assistant Container behövs en separat ESPHome Device Builder-container.
-2. Ladda ned denna fork. Kopiera `esphome/weatherstation-c6.yaml` och hela
-   `esphome/packages/` till Home Assistants `/config/esphome/`, till exempel med
-   Studio Code Server eller Samba. Välj motsvarande YAML för ett annat chip.
-3. Lägg till nycklarna från `esphome/secrets.example.yaml` i
-   `/config/esphome/secrets.yaml`. Behåll eventuella befintliga secrets.
-   Fyll i ditt WiFi och **egna** OTA/AP-lösenord. API-nyckeln ska vara 32 slumpbyte
-   i base64; använd en nyckel från Device Builders enhetsguide eller generera en med:
-
-   ```sh
-   python3 -c 'import secrets, base64; print(base64.b64encode(secrets.token_bytes(32)).decode())'
-   ```
-
-   Exempelnyckeln i repot är offentlig och endast avsedd för byggkontroller.
-4. Öppna profilen i Device Builder. Ta bort paket för sensorer du saknar och justera
-   pinnar/adresser vid behov. `air_quality` kräver `environment` för kompensation;
-   ta bort båda om AHT20 saknas. Klicka **Validate**, sedan **Install**.
-5. Första installationen görs via USB. Anslut till HA-maskinen och välj dess serieport,
-   eller välj **Manual download → Factory format** och installera via
-   [ESPHome Web](https://web.esphome.io/) i Chrome/Edge på datorn med USB-kabeln.
-   Om kortet inte hittas, håll BOOT medan du trycker RESET och försök igen.
-6. Lägg till den upptäckta ESPHome-enheten under **Inställningar → Enheter och tjänster**.
-   Ange API-nyckeln om HA frågar. Vid utebliven upptäckt kan du lägga till ESPHome
-   manuellt med enhetens IP-adress.
-7. Därefter används **Install → Wirelessly**, **Logs** och **Edit** i Device Builder.
-   Sensorer, omstart, säkert läge och nordkalibrering finns i Home Assistant.
-
-WiFi använder 2,4 GHz. Vid anslutningsproblem startas ett lösenordsskyddat reservnät
-med captive portal. HA måste kunna nå enhetens API (TCP 6053), och Device Builder
-måste kunna nå OTA (TCP 3232). Enheten fortsätter samla data när HA är avstängt.
-
-## Alternativ: hämta konfigurationen direkt från GitHub
-
-För en komplett C6-station kan du skapa en enhet i Device Builder och ersätta dess
-YAML med följande. Samma secrets som ovan behövs i Device Builders `secrets.yaml`.
-
-```yaml
-substitutions:
-  name: weatherstation-c6
-  friendly_name: Weather Station
-packages:
-  station:
-    url: https://github.com/pinussen/weatherstation
-    ref: main
-    files:
-      - esphome/weatherstation-c6.yaml
-    refresh: 1d
-```
-
-Byt filnamnet för ett annat chip. Egna substitutions för pinnar och kalibrering kan
-läggas i samma block. ESPHome hämtar även de inkluderade paketfilerna automatiskt.
-`main` följer ändringar i forken vid nästa hämtning/bygge; använd ett commit-ID som
-`ref` om du vill låsa versionen. Ingen firmware installeras automatiskt vid en
-repoändring – du väljer fortfarande **Install**. Använd lokal kopiering enligt ovan
-om du vill redigera paket eller välja bort sensorer.
-
-## Sensorer och kalibrering
-
-| Paket | Funktion | Standardadress |
+| Sensor | Funktion | Standardadress |
 |---|---|---|
-| `environment` | AHT20 temperatur/fukt, BMP280 stations- och havsnivåtryck | `0x38`, `0x76` |
-| `air_quality` | ENS160 TVOC, eCO2 och AQI | `0x53` |
-| `light` | BH1750 ljusstyrka | `0x23` |
-| `wind` | Pulsgivare, vindhastighet och högsta värde senaste 10 minuterna | GPIO |
-| `direction` | AS5600 vindriktning, cirkulärt medel och nordkalibrering | `0x36` |
-| `rain` | Pulsgivare, regnintensitet och sparad total nederbörd | GPIO |
+| AHT20 | Temperatur och fukt | `0x38` |
+| BMP280 | Stations- och havsnivåtryck | `0x76` |
+| ENS160 | TVOC, uppskattad eCO2 och AQI | `0x53` |
+| BH1750 | Ljusstyrka | `0x23` |
+| AS5600 | Vindriktning och nordkalibrering | `0x36` |
+| Pulsgivare | Vindhastighet, vindby, regnintensitet och regntotal | GPIO |
 
-Paket väljs uttryckligen; det finns ingen automatisk aktivering av sensorer.
-I²C-skanningen visas i loggen. BMP280 kan behöva `bmp280_address: '0x77'`, ENS160
-`ens160_address: '0x52'`. Saknade sensorer ger loggfel och otillgängliga värden.
-Två AHT20 på samma adress kan inte dela buss; använd bara en ansluten AHT20.
+Alla sensorer är aktiverade i programmet. Saknade I²C-sensorer ger loggfel och
+saknade värden; resten av enheten kan användas ändå. I²C-skanningen visas i loggen.
+Ta vid behov bort sensorernas block under `sensor:`. Tar du bort AHT20 måste du också
+ta bort ENS160:s `compensation`-block eller hela ENS160-sensorn. Tar du bort BMP280,
+ta även bort dess `copy`-sensor för havsnivåtryck. Vind-, regn- och riktningssensorerna
+har interna ID-referenser; behåll deras sammanhörande block eller ta bort hela gruppen.
 
-Lägg till önskade värden under profilens befintliga `substitutions`, exempelvis:
+Justera värdena som redan finns under `substitutions`:
 
-```yaml
-  altitude_m: '125.0'
-  temperature_offset: '-0.5'
-  humidity_offset: '0.0'
-  pressure_offset: '0.0'
-  rain_mm_per_tip: '0.6314'
-  wind_radius_mm: '80.0'
-  wind_magnets: '1.0'
-  wind_aerodynamic_factor: '3.0'
-  light_transmission: '1.0'
-```
+- `bmp280_address` kan behöva vara `'0x77'`, `ens160_address` kan behöva vara `'0x52'`.
+- `altitude_m`, `temperature_offset`, `humidity_offset` och `pressure_offset` kalibrerar miljövärdena.
+- `rain_mm_per_tip` är nederbörd per puls, standard `0.6314` mm.
+- `wind_radius_mm`, `wind_magnets` och `wind_aerodynamic_factor` anpassas till vindmätaren.
+- `light_transmission` kompenserar ett ljusdämpande skydd, större än 0 och högst 1.
 
-Radie, magnetantal och regnvolym måste kalibreras mot din mekanik; originalets
-standardvärden är bara utgångsvärden. Radie, magnetantal och regn per puls måste vara
-positiva. Ljusets transmission ska vara större än 0 och högst 1.
-Rikta vindflöjeln mot norr och tryck **Calibrate north** i HA. Kontrollera också att
-öst ger cirka 90°; AS5600:s DIR ska vara stabilt ansluten enligt sensorboardens anvisning.
+Radie, magnetantal och regn per puls måste vara positiva. Standardvärdena kommer från
+originalets mekanik och behöver kalibreras. Två AHT20 på samma adress kan inte dela buss.
+Rikta vindflöjeln mot norr och tryck **Calibrate north** i Home Assistant. Kontrollera
+också att öst ger cirka 90° och att AS5600:s DIR är stabilt ansluten enligt sensorboarden.
 
-Vindhastighet visas i m/s, med medel över fem tvåsekundersprov. Vindby är max över
-300 sådana prov (10 minuter), inte meteorologiskt certifierad bymätning. Pulsfri vind
-går till noll efter 10 sekunder, innan medelvärdesfiltret. Regnintensiteten beräknas
-mellan pulser och går till noll efter fem minuter utan puls; första pulsen ökar totalen
-men ger ännu ingen intensitet. ENS160:s eCO2 är ett uppskattat värde, inte en CO2-mätare.
-[ENS160-dokumentationen](https://esphome.io/components/sensor/ens160/) beskriver uppvärmningstiden.
+Vindhastigheten visas i m/s med medel över fem tvåsekundersprov. Vindby är max över
+10 minuter. Vind går till noll efter 10 sekunder utan puls, innan medelvärdesfiltret.
+Regnintensiteten beräknas mellan pulser och går till noll efter fem minuter utan puls;
+första pulsen ökar totalen men ger ännu ingen intensitet. ENS160 behöver
+[uppvärmningstid](https://esphome.io/components/sensor/ens160/).
 
-Regntotal och nordoffset sparas i flash med fem minuters skrivintervall för att minska
-slitage. Ett strömavbrott kan förlora de senaste fem minuternas ändringar. Historik och
-valfria tim-/dygnsmätare hanteras i Home Assistant, exempelvis med hjälparen
-**Utility Meter** och `Rain total` som källa. Dessa är kalenderperioder; originalets
-rullande 1h/24h-värden och dagliga vindby finns inte i denna version.
+Regntotal och nordoffset sparas i flash med fem minuters skrivintervall. Strömavbrott
+kan förlora de senaste fem minuternas ändringar. Historik och tim-/dygnsmätare hanteras
+i Home Assistant, till exempel med **Utility Meter** och `Rain total` som källa.
+Dessa är kalenderperioder, inte rullande 1h/24h-värden.
 
-## Utveckling och verifiering
+## Bygga lokalt
 
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
-cp esphome/secrets.example.yaml esphome/secrets.yaml
-.venv/bin/esphome config esphome/weatherstation-c6.yaml
-.venv/bin/esphome compile esphome/weatherstation-c6.yaml
+.venv/bin/esphome config weatherstation.yaml
+.venv/bin/esphome compile weatherstation.yaml
 ```
 
-Byggverktygen är låsta till ESPHome 2026.8.2; ESPHome väljer kompatibla ESP-IDF-
-och drivrutinsversioner. GitHub Actions validerar och bygger samtliga fem profiler.
-CI använder offentliga test-secrets och dess firmware ska inte installeras i drift.
-Profilerna behöver även provas med riktig hårdvara: I²C-adresser, pulser, riktning,
-WiFi och OTA. Ett lyckat bygge garanterar inte ett visst tredjepartskorts pinout.
+GitHub Actions validerar och bygger samtliga fem program med ESPHome 2026.8.2.
+CI använder filernas offentliga exempeluppgifter och dess firmware är inte för drift.
+Hårdvarutest av inkoppling, sensorer och OTA behöver göras på ditt kort.
 
-Originalets ESP8266-program finns kvar i `src/`, `include/` och `platformio.ini` som
-referens, med [ursprunglig README](README.esp8266.md). Det byggs **inte** av ESPHome.
-De gamla `.bin`-filerna gäller endast ESP8266. Webbgränssnitt, REST-API, MQTT,
-WiFiManager och originalets externa telemetri ingår inte i ESP32-firmware.
-Mekanik, bilder och materiallistor finns kvar för den som behöver dem.
-
-Ursprunglig upphovsrätt och MIT-licens finns i [LICENSE.md](LICENSE.md).
+Fork av [byte4geek/weatherstation](https://github.com/byte4geek/weatherstation).
+ESP8266-kod, gamla binärfiler, webbgränssnitt och övrigt originalmaterial har tagits
+bort från denna version och finns kvar i Git-historiken och originalrepot.
+Ursprunglig upphovsrätt och [MIT-licens](LICENSE.md) är bevarade.

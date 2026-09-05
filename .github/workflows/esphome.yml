@@ -2,9 +2,9 @@ name: ESPHome ESP32 builds
 
 on:
   push:
-    paths: ['esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
+    paths: ['weatherstation.yaml', 'esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
   pull_request:
-    paths: ['esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
+    paths: ['weatherstation.yaml', 'esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: [c6, esp32, c3, s3, s2]
+        config: [weatherstation.yaml, esphome/weatherstation-esp32.yaml, esphome/weatherstation-c3.yaml, esphome/weatherstation-s3.yaml, esphome/weatherstation-s2.yaml]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,9 +25,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - name: Use public test credentials for build validation only
-        run: cp esphome/secrets.example.yaml esphome/secrets.yaml
       - name: Validate
-        run: esphome config esphome/weatherstation-${{ matrix.board }}.yaml
+        run: esphome config ${{ matrix.config }}
       - name: Compile
-        run: esphome compile esphome/weatherstation-${{ matrix.board }}.yaml
+        run: esphome compile ${{ matrix.config }}

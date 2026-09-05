@@ -1,18 +1,286 @@
-# Copy this file and packages/ into /config/esphome/ in Home Assistant.
+# KOMPLETT ESPHome-program. Kopiera hela filen till enhetens YAML i Device Builder.
+# Inga paketfiler eller secrets.yaml behövs. Ändra WiFi, API-nyckel och lösenord nedan.
+# Se README.md för installation, inkoppling och kalibrering.
 substitutions:
   name: weatherstation-s3
   friendly_name: Weather Station
+  bmp280_address: '0x76'
+  temperature_offset: '0.0'
+  humidity_offset: '0.0'
+  pressure_offset: '0.0'
+  altitude_m: '0.0'
+  ens160_address: '0x53'
+  bh1750_address: '0x23'
+  light_transmission: '1.0'
+  wind_radius_mm: '80.0'
+  wind_magnets: '1.0'
+  wind_aerodynamic_factor: '3.0'
+  wind_debounce: 15ms
+  rain_mm_per_tip: '0.6314'
+  rain_debounce: 300ms
   esp32_variant: esp32s3
   sda_pin: GPIO8
   scl_pin: GPIO9
   wind_pin: GPIO4
   rain_pin: GPIO5
+  # Fyll i dina egna uppgifter innan installation. Exempelnyckeln nedan är offentlig.
+  wifi_ssid: CHANGE_ME_WIFI_NAME
+  wifi_password: CHANGE_ME_WIFI_PASSWORD
+  api_key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  ota_password: CHANGE_ME_OTA_PASSWORD
+  ap_password: CHANGE_ME_AP_PASSWORD
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.8.2
 
-packages:
-  base: !include packages/base.yaml
-  environment: !include packages/environment.yaml
-  air_quality: !include packages/air-quality.yaml
-  light: !include packages/light.yaml
-  wind: !include packages/wind.yaml
-  direction: !include packages/direction.yaml
-  rain: !include packages/rain.yaml
+esp32:
+  variant: ${esp32_variant}
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+logger:
+api:
+  encryption:
+    key: ${api_key}
+  # Keep collecting weather while Home Assistant is offline.
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    password: ${ota_password}
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  ap:
+    password: ${ap_password}
+
+captive_portal:
+preferences:
+  flash_write_interval: 5min
+
+i2c:
+  sda: ${sda_pin}
+  scl: ${scl_pin}
+  scan: true
+  frequency: 100kHz
+
+button:
+  - platform: restart
+    name: Restart
+    entity_category: diagnostic
+  - platform: safe_mode
+    name: Restart in safe mode
+    entity_category: diagnostic
+
+  - platform: template
+    name: Calibrate north
+    entity_category: config
+    on_press:
+      - lambda: |-
+          if (std::isfinite(id(vane_position).get_state())) {
+            auto call = id(north_offset).make_call();
+            call.set_value(id(vane_position).get_state());
+            call.perform();
+          }
+
+binary_sensor:
+  - platform: status
+    name: Status
+
+sensor:
+  - platform: wifi_signal
+    name: WiFi signal
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Uptime
+    entity_category: diagnostic
+
+  - platform: aht10
+    variant: AHT20
+    temperature:
+      id: air_temperature
+      name: Temperature
+      filters:
+        - offset: ${temperature_offset}
+    humidity:
+      id: air_humidity
+      name: Humidity
+      filters:
+        - offset: ${humidity_offset}
+        - clamp:
+            min_value: 0
+            max_value: 100
+    update_interval: 10s
+  - platform: bmp280_i2c
+    address: ${bmp280_address}
+    pressure:
+      id: station_pressure
+      name: Station pressure
+      filters:
+        - offset: ${pressure_offset}
+    update_interval: 10s
+  - platform: copy
+    source_id: station_pressure
+    name: Sea level pressure
+    filters:
+      - lambda: return x / powf(1.0f - (${altitude_m} / 44330.0f), 5.255f);
+  - platform: ens160_i2c
+    address: ${ens160_address}
+    eco2:
+      name: eCO2
+    tvoc:
+      name: TVOC
+    aqi:
+      name: Air quality index
+    compensation:
+      temperature: air_temperature
+      humidity: air_humidity
+    update_interval: 10s
+  - platform: bh1750
+    address: ${bh1750_address}
+    name: Illuminance
+    update_interval: 10s
+    filters:
+      - lambda: return x / ${light_transmission};
+  - platform: pulse_meter
+    id: wind_pulses
+    internal: true
+    pin:
+      number: ${wind_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    internal_filter: ${wind_debounce}
+    internal_filter_mode: EDGE
+    timeout: 10s
+    # pulse_meter reports pulses/minute; circumference in metres / 60 -> m/s.
+    filters:
+      - lambda: return x * (2.0f * 3.14159265f * ${wind_radius_mm} * ${wind_aerodynamic_factor}) / (1000.0f * 60.0f *
+          ${wind_magnets});
+  - platform: template
+    id: wind_sample
+    internal: true
+    update_interval: 2s
+    lambda: return id(wind_pulses).get_state();
+  - platform: copy
+    source_id: wind_sample
+    name: Wind speed
+    unit_of_measurement: m/s
+    device_class: wind_speed
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+  - platform: copy
+    source_id: wind_sample
+    name: Wind gust 10min
+    unit_of_measurement: m/s
+    device_class: wind_speed
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - max:
+          window_size: 300
+          send_every: 1
+  - platform: as5600
+    id: vane_position
+    internal: true
+    update_interval: 2s
+    # Sensor values are 12-bit positions, NOT degrees.
+    filters:
+      - multiply: 0.087890625
+      - timeout: 10s
+  - platform: template
+    name: Wind direction
+    unit_of_measurement: '°'
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 2s
+    lambda: |-
+      const float raw = id(vane_position).get_state();
+      if (!std::isfinite(raw)) return NAN;
+      // Circular mean: 359 and 1 degrees must average to north, not south.
+      static float angles[5] = {};
+      static unsigned index = 0, count = 0;
+      angles[index] = raw * 3.14159265f / 180.0f;
+      index = (index + 1) % 5;
+      if (count < 5) count++;
+      float s = 0, c = 0;
+      for (unsigned i = 0; i < count; i++) {
+        s += sinf(angles[i]);
+        c += cosf(angles[i]);
+      }
+      if (fabsf(s) + fabsf(c) < 0.00001f) return NAN;
+      return fmodf(atan2f(s, c) * 180.0f / 3.14159265f - id(north_offset).state + 720.0f, 360.0f);
+  - platform: pulse_meter
+    name: Rain rate
+    id: rain_pulses
+    pin:
+      number: ${rain_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    internal_filter: ${rain_debounce}
+    internal_filter_mode: EDGE
+    timeout: 5min
+    unit_of_measurement: mm/h
+    device_class: precipitation_intensity
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - multiply: ${rain_mm_per_tip}
+      - multiply: 60
+    total:
+      id: rain_tips_since_boot
+      internal: true
+      on_value:
+        - lambda: |-
+            static uint32_t previous = 0;
+            const uint32_t current = static_cast<uint32_t>(x);
+            if (current >= previous) {
+              id(saved_rain_mm) += (current - previous) * ${rain_mm_per_tip};
+            }
+            previous = current;
+            id(rain_total).publish_state(id(saved_rain_mm));
+  - platform: template
+    id: rain_total
+    name: Rain total
+    unit_of_measurement: mm
+    device_class: precipitation
+    state_class: total_increasing
+    accuracy_decimals: 2
+    update_interval: 60s
+    lambda: return id(saved_rain_mm);
+text_sensor:
+  - platform: version
+    name: ESPHome version
+    entity_category: diagnostic
+  - platform: wifi_info
+    ip_address:
+      name: IP address
+      entity_category: diagnostic
+as5600:
+  id: wind_vane
+
+number:
+  - platform: template
+    id: north_offset
+    name: Wind direction offset
+    entity_category: config
+    unit_of_measurement: '°'
+    min_value: 0
+    max_value: 359.9
+    step: 0.1
+    initial_value: 0
+    optimistic: true
+    restore_value: true
+
+globals:
+  - id: saved_rain_mm
+    type: double
+    restore_value: true
+    initial_value: '0.0'
