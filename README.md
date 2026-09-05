@@ -8,7 +8,7 @@ Use the complete [ESP32-C6 configuration](weatherstation.yaml). Copy the entire 
 
 | File | Chip | SDA | SCL | Wind | Rain |
 |---|---|---:|---:|---:|---:|
-| `weatherstation.yaml` | ESP32-C6 DevKit | GPIO6 | GPIO7 | GPIO10 | GPIO11 |
+| `weatherstation.yaml` | ESP32-C6 board | GPIO4 | GPIO5 | GPIO14 | GPIO15 |
 | `esphome/weatherstation-esp32.yaml` | ESP32/WROOM | GPIO21 | GPIO22 | GPIO25 | GPIO26 |
 | `esphome/weatherstation-c3.yaml` | ESP32-C3 | GPIO4 | GPIO5 | GPIO6 | GPIO7 |
 | `esphome/weatherstation-s3.yaml` | ESP32-S3 | GPIO8 | GPIO9 | GPIO4 | GPIO5 |
