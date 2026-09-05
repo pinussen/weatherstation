@@ -5,6 +5,7 @@ substitutions:
   name: weatherstation-esp32
   friendly_name: Weather Station
   bmp280_address: '0x76'
+  sht30_address: '0x44'
   temperature_offset: '0.0'
   humidity_offset: '0.0'
   pressure_offset: '0.0'
@@ -98,8 +99,8 @@ sensor:
     name: Uptime
     entity_category: diagnostic
 
-  - platform: aht10
-    variant: AHT20
+  - platform: sht3xd
+    address: ${sht30_address}
     temperature:
       id: air_temperature
       name: Temperature
