@@ -1,6 +1,6 @@
 # Weather Station for ESP32 and ESPHome
 
-This fork is an ESPHome implementation of the original weather station for Home Assistant. The main profile targets ESP32-C6 DevKit boards; standalone profiles for ESP32/WROOM, C3, S2 and S3 are in `esphome/`.
+This fork is an ESPHome implementation of the original weather station for Home Assistant. The main profile targets ESP32-C6 DevKit boards with 8 MB flash; standalone profiles for ESP32/WROOM, C3, S2 and S3 are in `esphome/`.
 
 ## Install in Home Assistant
 

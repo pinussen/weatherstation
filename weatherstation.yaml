@@ -35,7 +35,7 @@ esphome:
 
 esp32:
   variant: esp32c6
-  flash_size: 4MB
+  flash_size: 8MB
   framework:
     type: esp-idf
 
