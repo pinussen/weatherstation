@@ -1,0 +1,47 @@
+substitutions:
+  wind_radius_mm: '80.0'
+  wind_magnets: '1.0'
+  wind_aerodynamic_factor: '3.0'
+  wind_debounce: 15ms
+
+sensor:
+  - platform: pulse_meter
+    id: wind_pulses
+    internal: true
+    pin:
+      number: ${wind_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    internal_filter: ${wind_debounce}
+    internal_filter_mode: EDGE
+    timeout: 10s
+    # pulse_meter reports pulses/minute; circumference in metres / 60 -> m/s.
+    filters:
+      - lambda: return x * (2.0f * 3.14159265f * ${wind_radius_mm} * ${wind_aerodynamic_factor}) / (1000.0f * 60.0f * ${wind_magnets});
+  - platform: template
+    id: wind_sample
+    internal: true
+    update_interval: 2s
+    lambda: return id(wind_pulses).state;
+  - platform: copy
+    source_id: wind_sample
+    name: Wind speed
+    unit_of_measurement: m/s
+    device_class: wind_speed
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+  - platform: copy
+    source_id: wind_sample
+    name: Wind gust 10min
+    unit_of_measurement: m/s
+    device_class: wind_speed
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - max:
+          window_size: 300
+          send_every: 1

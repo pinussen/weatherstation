@@ -1,0 +1,18 @@
+# Copy this file and packages/ into /config/esphome/ in Home Assistant.
+substitutions:
+  name: weatherstation-c3
+  friendly_name: Weather Station
+  esp32_variant: esp32c3
+  sda_pin: GPIO4
+  scl_pin: GPIO5
+  wind_pin: GPIO6
+  rain_pin: GPIO7
+
+packages:
+  base: !include packages/base.yaml
+  environment: !include packages/environment.yaml
+  air_quality: !include packages/air-quality.yaml
+  light: !include packages/light.yaml
+  wind: !include packages/wind.yaml
+  direction: !include packages/direction.yaml
+  rain: !include packages/rain.yaml

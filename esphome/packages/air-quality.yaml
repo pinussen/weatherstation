@@ -1,0 +1,17 @@
+# Requires environment.yaml for temperature/humidity compensation.
+substitutions:
+  ens160_address: '0x53'
+
+sensor:
+  - platform: ens160_i2c
+    address: ${ens160_address}
+    eco2:
+      name: eCO2
+    tvoc:
+      name: TVOC
+    aqi:
+      name: Air quality index
+    compensation:
+      temperature: air_temperature
+      humidity: air_humidity
+    update_interval: 10s

@@ -1,0 +1,49 @@
+substitutions:
+  rain_mm_per_tip: '0.6314'
+  rain_debounce: 300ms
+
+globals:
+  - id: saved_rain_mm
+    type: double
+    restore_value: true
+    initial_value: '0.0'
+
+sensor:
+  - platform: pulse_meter
+    name: Rain rate
+    id: rain_pulses
+    pin:
+      number: ${rain_pin}
+      mode: INPUT_PULLUP
+      inverted: true
+    internal_filter: ${rain_debounce}
+    internal_filter_mode: EDGE
+    timeout: 5min
+    unit_of_measurement: mm/h
+    device_class: precipitation_intensity
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - multiply: ${rain_mm_per_tip}
+      - multiply: 60
+    total:
+      id: rain_tips_since_boot
+      internal: true
+      on_value:
+        - lambda: |-
+            static uint32_t previous = 0;
+            const uint32_t current = static_cast<uint32_t>(x);
+            if (current >= previous) {
+              id(saved_rain_mm) += (current - previous) * ${rain_mm_per_tip};
+            }
+            previous = current;
+            id(rain_total).publish_state(id(saved_rain_mm));
+  - platform: template
+    id: rain_total
+    name: Rain total
+    unit_of_measurement: mm
+    device_class: precipitation
+    state_class: total_increasing
+    accuracy_decimals: 2
+    update_interval: 60s
+    lambda: return id(saved_rain_mm);

@@ -1,0 +1,32 @@
+name: ESPHome ESP32 builds
+
+on:
+  push:
+    paths: ['esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
+  pull_request:
+    paths: ['esphome/**', 'requirements-dev.txt', '.github/workflows/esphome.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [c6, esp32, c3, s3, s2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Use public test credentials for build validation only
+        run: cp esphome/secrets.example.yaml esphome/secrets.yaml
+      - name: Validate
+        run: esphome config esphome/weatherstation-${{ matrix.board }}.yaml
+      - name: Compile
+        run: esphome compile esphome/weatherstation-${{ matrix.board }}.yaml
