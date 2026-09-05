@@ -20,7 +20,7 @@ ESPHome uses the encrypted native Home Assistant API and OTA. MQTT and the origi
 
 ## Wiring and sensors
 
-Connect all I²C sensors in parallel to the listed SDA/SCL pins and common ground. Use 3.3 V pull-ups. ESP32 GPIOs are not 5 V tolerant. The A3144 output must be open collector with a pull-up to 3.3 V, or use a level shifter if its module pulls up to 5 V.
+Connect all I²C sensors in parallel to the listed SDA/SCL pins and common ground. For the SHT30 cable used with this build, the colours are **red = 3.3 V, black = GND, white = SDA (GPIO0), yellow = SCL (GPIO1)**. Cable colours are not universal, so verify the labels on the module before powering it. Use 3.3 V pull-ups. ESP32 GPIOs are not 5 V tolerant. The A3144 output must be open collector with a pull-up to 3.3 V, or use a level shifter if its module pulls up to 5 V.
 
 The configuration supports SHT30 (`0x44`), BMP280 (`0x76`), ENS160 (`0x53`), BH1750 (`0x23`), AS5600 (`0x36`), a wind pulse input and a rain pulse input. Connect the SHT30's four wires as 3.3 V, GND, SDA and SCL. Missing sensors report unavailable while the rest of the device continues running. Change `sht30_address` to `0x45`, `bmp280_address` to `0x77` or `ens160_address` to `0x52` when required.
 

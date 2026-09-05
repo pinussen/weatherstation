@@ -23,6 +23,7 @@ substitutions:
   scl_pin: GPIO1
   wind_pin: GPIO2
   rain_pin: GPIO3
+  # SHT30 wiring on this board: red=3.3V, black=GND, white=SDA, yellow=SCL.
   # Replace these public example credentials before installing.
   wifi_ssid: CHANGE_ME_WIFI_NAME
   wifi_password: CHANGE_ME_WIFI_PASSWORD
