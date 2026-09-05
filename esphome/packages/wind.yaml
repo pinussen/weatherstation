@@ -22,7 +22,7 @@ sensor:
     id: wind_sample
     internal: true
     update_interval: 2s
-    lambda: return id(wind_pulses).state;
+    lambda: return id(wind_pulses).get_state();
   - platform: copy
     source_id: wind_sample
     name: Wind speed

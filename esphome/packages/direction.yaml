@@ -20,9 +20,9 @@ button:
     entity_category: config
     on_press:
       - lambda: |-
-          if (std::isfinite(id(vane_position).state)) {
+          if (std::isfinite(id(vane_position).get_state())) {
             auto call = id(north_offset).make_call();
-            call.set_value(id(vane_position).state);
+            call.set_value(id(vane_position).get_state());
             call.perform();
           }
 
@@ -42,7 +42,7 @@ sensor:
     accuracy_decimals: 1
     update_interval: 2s
     lambda: |-
-      const float raw = id(vane_position).state;
+      const float raw = id(vane_position).get_state();
       if (!std::isfinite(raw)) return NAN;
       // Circular mean: 359 and 1 degrees must average to north, not south.
       static float angles[5] = {};

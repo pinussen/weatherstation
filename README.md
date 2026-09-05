@@ -62,6 +62,31 @@ WiFi använder 2,4 GHz. Vid anslutningsproblem startas ett lösenordsskyddat res
 med captive portal. HA måste kunna nå enhetens API (TCP 6053), och Device Builder
 måste kunna nå OTA (TCP 3232). Enheten fortsätter samla data när HA är avstängt.
 
+## Alternativ: hämta konfigurationen direkt från GitHub
+
+För en komplett C6-station kan du skapa en enhet i Device Builder och ersätta dess
+YAML med följande. Samma secrets som ovan behövs i Device Builders `secrets.yaml`.
+
+```yaml
+substitutions:
+  name: weatherstation-c6
+  friendly_name: Weather Station
+packages:
+  station:
+    url: https://github.com/pinussen/weatherstation
+    ref: main
+    files:
+      - esphome/weatherstation-c6.yaml
+    refresh: 1d
+```
+
+Byt filnamnet för ett annat chip. Egna substitutions för pinnar och kalibrering kan
+läggas i samma block. ESPHome hämtar även de inkluderade paketfilerna automatiskt.
+`main` följer ändringar i forken vid nästa hämtning/bygge; använd ett commit-ID som
+`ref` om du vill låsa versionen. Ingen firmware installeras automatiskt vid en
+repoändring – du väljer fortfarande **Install**. Använd lokal kopiering enligt ovan
+om du vill redigera paket eller välja bort sensorer.
+
 ## Sensorer och kalibrering
 
 | Paket | Funktion | Standardadress |
