@@ -19,10 +19,10 @@ substitutions:
   wind_debounce: 15ms
   rain_mm_per_tip: '0.6314'
   rain_debounce: 300ms
-  sda_pin: GPIO4
-  scl_pin: GPIO5
-  wind_pin: GPIO14
-  rain_pin: GPIO15
+  sda_pin: GPIO0
+  scl_pin: GPIO1
+  wind_pin: GPIO2
+  rain_pin: GPIO3
   # Replace these public example credentials before installing.
   wifi_ssid: CHANGE_ME_WIFI_NAME
   wifi_password: CHANGE_ME_WIFI_PASSWORD
